@@ -90,3 +90,81 @@ export async function getOrderByClientId (req, res) {
         return res.sendStatus(500); // internal server error
     }
 }
+
+export async function getOrders (req, res) {
+    const date = (req.query.date);
+    
+    if(!date) {
+        const {rows} = await db.query(`
+        SELECT orders.*, clients.*, cakes.*, 
+        clients.name AS "clientName", orders.id AS "orderId", 
+        clients.id AS "clientId", cakes.id AS "cakeId"
+        FROM orders
+        JOIN clients
+        ON orders."clientId" = clients.id
+        JOIN cakes
+        ON orders."cakeId" = cakes.id
+        `)
+
+        if(rows.length === 0) {
+            return res.sendStatus(404) // Not Found
+        }
+
+        const object = rows.map((order) => ({
+            id: order.orderId,
+            client: {
+                id: order.clientId,
+                name: order.clientName,
+                address: order.address,
+                phone: order.phone
+            }, 
+            cake: {
+                id: order.cakeId,
+                name: order.name,
+                price: order.price,
+                image: order.image,
+                description: order.description
+            },
+            createdAt: order.createdAt,
+            quantity: order.quantity,
+            totalPrice: order.totalPrice
+            
+        })) 
+
+        return res.send(object)
+    } else {
+        const {rows} = await db.query(`
+        SELECT orders.*, clients.*, cakes.*, 
+        clients.name AS "clientName", orders.id AS "orderId", 
+        clients.id AS "clientId", cakes.id AS "cakeId"
+        FROM orders
+        JOIN clients
+        ON orders."clientId" = clients.id
+        JOIN cakes
+        ON orders."cakeId" = cakes.id
+        WHERE "createdAt" BETWEEN $1 AND $2
+        `, [`${date} 00:00:00`, `${date} 23:59:59`]);
+
+        const object = rows.map((order) => ({
+            id: order.orderId,
+            client: {
+                id: order.clientId,
+                name: order.clientName,
+                address: order.address,
+                phone: order.phone
+            }, 
+            cake: {
+                id: order.cakeId,
+                name: order.name,
+                price: order.price,
+                image: order.image,
+                description: order.description
+            },
+            createdAt: order.createdAt,
+            quantity: order.quantity,
+            totalPrice: order.totalPrice
+        })) 
+
+        return res.status(rows.length === 0 ? 404 : 200).send(object)
+    }
+}
