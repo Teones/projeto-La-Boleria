@@ -35,7 +35,7 @@ export async function getOrderById (req, res) {
         }
 
         const {rows} = await db.query(`
-        SELECT * FROM orders
+        SELECT orders.*, clients.*, cakes.*, clients.name AS "clientName" FROM orders
         JOIN clients
         ON orders."clientId" = clients.id
         JOIN cakes
@@ -43,8 +43,26 @@ export async function getOrderById (req, res) {
         WHERE orders.id = $1
         `, [id])
         const result = rows[0]
+        const objetc = {
+            "client": {
+                "id": result.clientId,
+                "name": result.clientName,
+                "address": result.address,
+                "phone": result.phone
+            },
+            "cake": {
+                "id": result.cakeId,
+                "name": result.name,
+                "price": result.price,
+                "description": result.description,
+                "image": result.image
+            },
+            "createdAt": result.createdAt,
+            "quantity": result.quantity,
+            "totalPrice": result.totalPrice,
+        }
 
-        return res.status(200).send(result) // OK
+        return res.status(200).send(objetc) // OK
     } catch (error) {
         console.log(error);
         return res.sendStatus(500); // internal server error
